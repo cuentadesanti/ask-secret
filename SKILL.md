@@ -1,48 +1,47 @@
 ---
-name: pedir-secreto
-description: Pide al usuario una contraseña, token, API key o cualquier secreto mediante una ventanita nativa de macOS y lo guarda en un archivo dotenv sin que pase por el chat. Úsalo siempre que necesites una credencial que no tengas, en lugar de pedir que la peguen en la conversación o que editen un archivo a mano.
+name: ask-secret
+description: Ask the user for a password, token, API key or any other secret through a native macOS dialog and store it in a dotenv file without it ever going through the chat. Use it whenever you need a credential you don't have, instead of asking the user to paste it into the conversation or edit a file by hand.
 ---
 
-# Pedir un secreto al usuario
+# Ask the user for a secret
 
-Nunca pidas al usuario que pegue secretos en el chat ni que abra un archivo para escribirlos.
-Lanza la ventanita:
-
-```bash
-~/.agents/skills/pedir-secreto/pedir-secreto.sh -f <archivo> NOMBRE [NOMBRE...]
-```
-
-- Abre un diálogo de macOS con campo oculto por cada `NOMBRE`. El usuario pega el valor y pulsa Guardar.
-- Guarda `NOMBRE=valor` (sin comillas, una línea por clave) en `<archivo>`. Si la clave ya existe, la reemplaza.
-- Si no se pasa `-f`, usa `./.env.local`. Si el proyecto ya tiene un archivo de credenciales
-  (p. ej. `.env.dev`), usa ese.
-- Crea el archivo con permisos 600 y lo añade a `.gitignore` si está en un repo y no estaba ignorado.
-- Usa nombres en MAYÚSCULAS_CON_GUIONES_BAJOS que describan bien el secreto (`ACTUAL_DEV_PASSWORD`, `OPENAI_API_KEY`).
-- Avisa al usuario en una línea antes de lanzarlo ("te abro una ventana para que pegues X"), porque
-  el diálogo espera respuesta.
-
-Códigos de salida: `0` guardado · `1` el usuario canceló o no respondió en 10 min · `2` uso incorrecto ·
-`3` no se pudo abrir la ventana.
-
-**Agentes con sandbox (Codex y similares):** el sandbox bloquea el diálogo (sale con código `3`).
-Ejecuta este comando fuera del sandbox / pidiendo permisos elevados; también necesita escribir en
-`<archivo>`.
-
-Para saber qué hay guardado (solo nombres, nunca valores):
+Never ask the user to paste secrets into the chat or to open a file and type them in.
+Open the dialog instead:
 
 ```bash
-~/.agents/skills/pedir-secreto/pedir-secreto.sh -f <archivo> --list
+~/.agents/skills/ask-secret/ask-secret.sh -f <file> NAME [NAME...]
 ```
 
-## Usar los secretos sin verlos
+- Opens a macOS dialog with a hidden input field for each `NAME`. The user pastes the value and clicks Save.
+- Stores `NAME=value` (unquoted, one line per key) in `<file>`. An existing key is replaced.
+- Without `-f` it uses `./.env.local`. If the project already has a credentials file
+  (e.g. `.env.dev`), use that one.
+- Creates the file with mode 600 and adds it to `.gitignore` if it is inside a repo and not already ignored.
+- Use descriptive UPPER_SNAKE_CASE names (`DB_PASSWORD`, `OPENAI_API_KEY`).
+- Tell the user in one line before opening it ("I'm opening a dialog for you to paste X"), because
+  the dialog waits for their answer.
 
-- No hagas `cat`, `grep`, `echo` ni leas el archivo con tus herramientas: el valor entraría en la conversación.
-- Cárgalos solo dentro del comando que los necesita, con `run`:
+Exit codes: `0` saved · `1` the user cancelled or did not answer within 10 min · `2` bad usage ·
+`3` could not open the dialog or write the file.
+
+**Sandboxed agents (Codex and similar):** the sandbox blocks the dialog and writes outside the
+workspace (exit code `3`). Run this command outside the sandbox / request elevated permissions.
+
+To see what is stored (names only, never values):
+
+```bash
+~/.agents/skills/ask-secret/ask-secret.sh -f <file> --list
+```
+
+## Using secrets without seeing them
+
+- Do not `cat`, `grep` or `echo` the file, or read it with your tools: the value would end up in the conversation.
+- Load them only inside the command that needs them, with `run`:
   ```bash
-  ~/.agents/skills/pedir-secreto/pedir-secreto.sh -f .env.local run -- node script.cjs
+  ~/.agents/skills/ask-secret/ask-secret.sh -f .env.local run -- node script.js
   ```
-  o léelos desde el propio script (Node: parsear `KEY=valor` separando por el primer `=`).
-- **Nunca** uses `source` ni `set -a; . archivo`: los valores van sin comillas y la shell los
-  ejecutaría (un valor con espacios, `$(...)` o comillas invertidas se interpreta como código).
-- No los pases como argumentos de línea de comandos si se puede evitar (se ven en `ps`); mejor por variable de entorno.
-- No imprimas los valores en logs ni en la salida de los scripts.
+  or read them from the script itself (parse `KEY=value`, splitting on the first `=`).
+- **Never** use `source` or `set -a; . file`: values are unquoted and the shell would execute them
+  (a value with spaces, `$(...)` or backticks is interpreted as code).
+- Avoid passing secrets as command-line arguments (they show up in `ps`); prefer environment variables.
+- Never print the values in logs or script output.

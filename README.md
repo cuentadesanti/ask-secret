@@ -1,70 +1,66 @@
-# pedir-secreto
+# ask-secret
 
-Una [Agent Skill](https://agentskills.io) para que tu agente de código (Claude Code, Codex, Cursor, Gemini CLI, Antigravity…)
-te pida contraseñas, tokens y API keys **sin que pasen por el chat**.
+An [Agent Skill](https://agentskills.io) that lets your coding agent (Claude Code, Codex, Cursor, Gemini CLI, Antigravity…)
+ask you for passwords, tokens and API keys **without them ever going through the chat**.
 
-Cuando el agente necesita una credencial, abre una ventanita nativa de macOS con el campo oculto.
-Pegas el valor, pulsas **Guardar** y queda en un archivo `.env` que el agente usa sin leerlo nunca.
+When the agent needs a credential, it opens a native macOS dialog with a hidden input field.
+You paste the value, click **Save**, and it lands in a `.env` file that the agent uses without ever reading it.
 
-> **EN:** An Agent Skill that lets your coding agent ask you for secrets through a native macOS
-> password dialog and store them in a dotenv file, so they never go through the chat transcript.
-> Secrets are then injected into commands with `pedir-secreto.sh run -- <cmd>` without the agent seeing them.
-
-## Instalación
+## Install
 
 ```bash
-git clone https://github.com/cuentadesanti/pedir-secreto ~/.agents/skills/pedir-secreto
-~/.agents/skills/pedir-secreto/install.sh
+git clone https://github.com/cuentadesanti/ask-secret ~/.agents/skills/ask-secret
+~/.agents/skills/ask-secret/install.sh
 ```
 
-`~/.agents/skills` es el directorio estándar compartido: Codex y Gemini CLI lo leen directamente.
-`install.sh` crea enlaces simbólicos para los agentes que tengas instalados:
+`~/.agents/skills` is the shared, tool-agnostic skills folder: Codex and Gemini CLI read it directly.
+`install.sh` creates symlinks for the other agents you have installed:
 
-| Agente | Ruta |
+| Agent | Path |
 |---|---|
-| Codex, Gemini CLI | `~/.agents/skills/pedir-secreto` (copia principal) |
-| Claude Code | `~/.claude/skills/pedir-secreto` → enlace |
-| Cursor | `~/.cursor/skills/pedir-secreto` → enlace |
-| Antigravity | `~/.gemini/config/skills/pedir-secreto` → enlace |
+| Codex, Gemini CLI | `~/.agents/skills/ask-secret` (canonical copy) |
+| Claude Code | `~/.claude/skills/ask-secret` → symlink |
+| Cursor | `~/.cursor/skills/ask-secret` → symlink |
+| Antigravity | `~/.gemini/config/skills/ask-secret` → symlink |
 
-Para actualizar: `git -C ~/.agents/skills/pedir-secreto pull`.
+To update: `git -C ~/.agents/skills/ask-secret pull`.
 
-## Uso
+## Usage
 
-No tienes que hacer nada: cuando el agente necesite una credencial, te abrirá la ventana. También puedes usarlo a mano:
+Nothing to do: when the agent needs a credential, it opens the dialog. You can also use it by hand:
 
 ```bash
-S=~/.agents/skills/pedir-secreto/pedir-secreto.sh
+S=~/.agents/skills/ask-secret/ask-secret.sh
 
-$S -f .env.local OPENAI_API_KEY DB_PASSWORD    # una ventana por secreto
-$S -f .env.local --list                        # solo nombres, nunca valores
-$S -f .env.local run -- node script.js         # ejecuta con los secretos como variables de entorno
+$S -f .env.local OPENAI_API_KEY DB_PASSWORD    # one dialog per secret
+$S -f .env.local --list                        # names only, never values
+$S -f .env.local run -- node script.js         # run with the secrets as environment variables
 ```
 
-- Formato del archivo: `NOMBRE=valor`, una línea por clave, sin comillas. Si la clave existe, se reemplaza.
-- Archivo por defecto: `./.env.local`. Se crea con permisos `600` y se añade a `.gitignore` si hace falta.
-- `run` lee el archivo literalmente: los valores nunca se ejecutan como código de shell.
-  **No uses `source`** con estos archivos.
-- Códigos de salida: `0` guardado · `1` cancelado o sin respuesta en 10 min · `2` uso incorrecto · `3` no se pudo abrir la ventana o escribir el archivo.
+- File format: `NAME=value`, one line per key, unquoted. Existing keys are replaced.
+- Default file: `./.env.local`. It is created with mode `600` and added to `.gitignore` when needed.
+- `run` reads the file literally: values are never executed as shell code.
+  **Don't `source` these files.**
+- Exit codes: `0` saved · `1` cancelled or no answer within 10 min · `2` bad usage · `3` could not open the dialog or write the file.
 
-### Agentes con sandbox
+### Sandboxed agents
 
-El sandbox de Codex (y similares) bloquea el diálogo y la escritura fuera del workspace. El script
-sale con código `3` y un mensaje claro, y la skill le indica al agente que lo ejecute con permisos
-elevados, que tendrás que aprobar.
+Codex's sandbox (and similar ones) blocks the dialog and writes outside the workspace. The script
+exits with code `3` and a clear message, and the skill tells the agent to rerun it with elevated
+permissions, which you approve.
 
-## Qué protege y qué no
+## What it protects against (and what it doesn't)
 
-- ✅ Que un secreto acabe en el historial del chat, en logs o en la salida de un comando.
-- ✅ Que tengas que abrir un editor y pegarlo a mano en un archivo.
-- ❌ No protege frente a un agente que quiera leer el archivo a propósito: queda en texto plano en tu
-  disco y cualquier proceso de tu usuario puede leerlo. La skill le pide al agente que no lo haga; si
-  quieres garantizarlo, bloquea la lectura de esos archivos en los permisos de tu agente.
+- ✅ Secrets ending up in the chat transcript, in logs or in command output.
+- ✅ Having to open an editor and paste them into a file by hand.
+- ❌ It does not stop an agent that deliberately reads the file: it is plain text on your disk and any
+  process running as your user can read it. The skill tells the agent not to; to enforce it, deny
+  reads of those files in your agent's permission settings.
 
-## Requisitos
+## Requirements
 
-- macOS (usa `osascript` para la ventana). `run` y `--list` funcionan en cualquier sistema con `zsh`.
+- macOS for the dialog (it uses `osascript`). `run` and `--list` work anywhere with `zsh`.
 
-## Licencia
+## License
 
 MIT

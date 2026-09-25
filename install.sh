@@ -1,31 +1,31 @@
 #!/bin/zsh
-# Instala la skill para todos los agentes detectados.
-# La copia canónica vive en ~/.agents/skills/pedir-secreto (la leen Codex y Gemini CLI directamente);
-# en el resto se crea un enlace simbólico. Solo se enlaza si el agente está instalado (existe su carpeta).
+# Installs the skill for every detected agent.
+# The canonical copy lives in ~/.agents/skills/ask-secret (read directly by Codex and Gemini CLI);
+# other agents get a symlink. An agent is only linked if it is installed (its home folder exists).
 set -eu
 src="${0:A:h}"
-canon="$HOME/.agents/skills/pedir-secreto"
+canon="$HOME/.agents/skills/ask-secret"
 
 if [[ "$src" != "$canon" ]]; then
   mkdir -p "${canon:h}"
-  [[ -e "$canon" ]] && { echo "Ya existe $canon; bórralo antes de reinstalar desde otra ruta." >&2; exit 1; }
+  [[ -e "$canon" ]] && { echo "$canon already exists; remove it before reinstalling from another path." >&2; exit 1; }
   cp -R "$src" "$canon"
-  echo "Copiado a $canon (Codex, Gemini CLI)"
+  echo "Copied to $canon (Codex, Gemini CLI)"
 else
-  echo "Canónica en $canon (Codex, Gemini CLI)"
+  echo "Canonical copy at $canon (Codex, Gemini CLI)"
 fi
-chmod +x "$canon/pedir-secreto.sh"
+chmod +x "$canon/ask-secret.sh"
 
-# agente:carpeta-del-agente:carpeta-de-skills
+# agent:agent-home:skills-dir
 for entry in \
   "Claude Code:$HOME/.claude:$HOME/.claude/skills" \
   "Cursor:$HOME/.cursor:$HOME/.cursor/skills" \
   "Antigravity:$HOME/.gemini/antigravity:$HOME/.gemini/config/skills"; do
   agent="${entry%%:*}"; rest="${entry#*:}"; home="${rest%%:*}"; dir="${rest#*:}"
-  [[ -d "$home" ]] || { echo "$agent: no instalado, se omite"; continue; }
-  link="$dir/pedir-secreto"
+  [[ -d "$home" ]] || { echo "$agent: not installed, skipped"; continue; }
+  link="$dir/ask-secret"
   if [[ -L "$link" ]]; then ln -sfn "$canon" "$link"
-  elif [[ -e "$link" ]]; then echo "$agent: $link existe y no es un enlace; no lo toco" >&2; continue
+  elif [[ -e "$link" ]]; then echo "$agent: $link exists and is not a symlink; leaving it alone" >&2; continue
   else mkdir -p "$dir"; ln -s "$canon" "$link"; fi
-  echo "$agent: enlazado $link"
+  echo "$agent: linked $link"
 done
